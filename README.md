@@ -53,6 +53,8 @@ fine-tuning-on-aws/
 │   └── train.py                      # Training script with LoRA fine-tuning
 ├── finetuning_experiment/
 │   └── experiment.ipynb             # Experimentation and exploration notebook
+├── inference/
+│   └── inference.py                 # SageMaker inference container handler
 ├── deployment_of_model.ipynb        # Model deployment workflow
 ├── estimator_launcher.ipynb         # SageMaker job launcher notebook
 ├── inference_app.py                 # Streamlit inference UI
@@ -64,6 +66,49 @@ fine-tuning-on-aws/
 ├── requirements.txt                 # Production dependencies
 ├── requirements_inference.txt       # Inference-only dependencies
 └── README.md                        # This file
+```
+
+---
+
+## SageMaker Inference Container
+
+The `inference/inference.py` file defines the inference handler for SageMaker endpoints. It implements custom serialization logic for handling model predictions.
+
+### Key Functions:
+
+**`model_fn(model_dir)`**
+- Loads the fine-tuned model and tokenizer from the SageMaker model directory
+- Handles model initialization with appropriate data types (float32)
+- Returns: `(model, tokenizer)` tuple
+
+**`predict_fn(data, model_and_tokenizer)`**
+- Processes incoming inference requests
+- Tokenizes input text with `return_tensors="pt"` for PyTorch
+- Generates predictions using `model.generate()` with `max_new_tokens=100`
+- Decodes and returns the generated text
+
+### Usage with SageMaker:
+
+When deploying to SageMaker, this handler enables:
+- Automatic model loading from S3
+- Request/response serialization
+- Batch inference support
+- Integration with SageMaker Endpoint API
+
+**Example Invocation**:
+```python
+import boto3
+import json
+
+runtime = boto3.client('sagemaker-runtime')
+
+response = runtime.invoke_endpoint(
+    EndpointName='your-endpoint-name',
+    Body=json.dumps({"inputs": "Your prompt here"}),
+    ContentType='application/json'
+)
+
+result = json.loads(response['Body'].read())
 ```
 
 ---
